@@ -564,12 +564,10 @@ class Dcm2niix4PET:
                     #for MultiValue, go thorugh each entry
                     new_list=entry.value
                     for i in range(len(new_list)):
-                        if re.match("^[0-9]+$",new_list[i]):
-                            new_list[i]+=".0"
+                        new_list[i]=pydicom.valuerep.TM(new_list[i]).strftime("%H%M%S.%f")
                     dicom_header[entry.tag].value=new_list
                 else:
-                    if re.match("^[0-9]+$",entry.value):
-                        dicom_header[entry.tag].value+=".0"
+                    dicom_header[entry.tag].value=pydicom.valuerep.TM(entry.value).strftime("%H%M%S.%f")
         return dicom_header
 
     def extract_dicom_headers(self, depth=1):
