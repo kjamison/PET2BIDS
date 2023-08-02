@@ -567,6 +567,9 @@ class Dcm2niix4PET:
                         new_list[i]=pydicom.valuerep.TM(new_list[i]).strftime("%H%M%S.%f")
                     dicom_header[entry.tag].value=new_list
                 else:
+                    if not entry.value:
+                        #skip if empty
+                        continue
                     dicom_header[entry.tag].value=pydicom.valuerep.TM(entry.value).strftime("%H%M%S.%f")
         return dicom_header
 
