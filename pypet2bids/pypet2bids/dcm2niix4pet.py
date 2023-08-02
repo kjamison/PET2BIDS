@@ -178,6 +178,19 @@ def update_json_with_dicom_value(
         paired_fields[field] = dcmfields[index]
 
     logger.info("Attempting to locate missing BIDS fields in dicom header")
+
+    # RadionuclideTotalDose, etc somtimes a sub-item inside Radiopharm sequence, which is not
+    # a location later logic can check. So look for it there and place it into 
+    # dicom_header.RadionuclideTotalDose if found
+    if "RadiopharmaceuticalInformationSequence" in dicom_header:
+        dose_entry=[entry for entry in dicom_header.RadiopharmaceuticalInformationSequence if "RadionuclideTotalDose" in entry]
+        if len(dose_entry) > 0:
+            dose_entry=dose_entry[0]
+            radio_fields=['RadionuclideTotalDose','RadionuclideHalfLife','RadionuclidePositronFraction','Radiopharmaceutical']
+            for rf in radio_fields:
+                if (not rf in dicom_header or not getattr(dicom_header,rf)) and rf in dose_entry:
+                    setattr(dicom_header, rf, getattr(dose_entry,rf))
+    
     # go through missing fields and reach into dicom to pull out values
     json_updater = JsonMAJ(json_path=path_to_json, bids_null=True)
     for key, value in paired_fields.items():
