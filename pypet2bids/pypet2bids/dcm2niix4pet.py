@@ -425,6 +425,11 @@ class Dcm2niix4PET:
 
         self.dicom_headers = self.extract_dicom_headers()
 
+        #some dicom anonymization pipelines remove the ".0" from time fields, which causes problems
+        #when dateutil tries to parse them. Go through dicom_headers and append ".0" to any time values
+        #that need it
+        self.dicom_headers = {k:self.fix_dicom_time_fields(v) for k,v in self.dicom_headers.items()}
+
         self.additional_arguments = additional_arguments
 
         self.spreadsheet_metadata = {}
@@ -542,6 +547,30 @@ class Dcm2niix4PET:
             dcm2niix_path = None
 
         return dcm2niix_path
+
+    def fix_dicom_time_fields(self, dicom_header):
+        """
+        Some dicom anonymization pipelines remove the ".0" from time fields, which causes problems
+        when dateutil tries to parse them. Go through dicom_header entries and append ".0" to any time values
+        that need it
+
+        :param dicom_header: a pydicom Dataset object with dicom entries
+        :return: a new pydicom Dataset object with corrected time entries
+        """
+        for entry in dicom_header:
+            if entry.VR == 'TM':
+                #check all entries with "TM" value representation
+                if isinstance(entry.value, pydicom.multival.MultiValue):
+                    #for MultiValue, go thorugh each entry
+                    new_list=entry.value
+                    for i in range(len(new_list)):
+                        if re.match("^[0-9]+$",new_list[i]):
+                            new_list[i]+=".0"
+                    dicom_header[entry.tag].value=new_list
+                else:
+                    if re.match("^[0-9]+$",entry.value):
+                        dicom_header[entry.tag].value+=".0"
+        return dicom_header
 
     def extract_dicom_headers(self, depth=1):
         """
